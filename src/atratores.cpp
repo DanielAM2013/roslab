@@ -26,13 +26,19 @@ float Sinc( float ang) {
 int Sign(float x, float y) {
 	if ( x > 0 || (x==0 && y<0) )
 		return 1;
-	else
-		return -1;
+	return -1;
 }
 
 
+float Theta_d( float x, float y) {
+	if ( x==0 )
+		x=0.01;
+
+	return 2*atan(y/x);
+}
+
 float NormRad( float ang) {
-	while(ang<pi) {
+	while(ang<-pi) {
 		ang+=2*pi;
 	}
 	while(ang>pi) {
@@ -40,18 +46,6 @@ float NormRad( float ang) {
 	}
 	return ang;
 }
-
-
-float Theta_d( float x, float y) {
-	float theta_d;
-	if (!x && !y) {
-		theta_d=0;
-	}
-	else
-		theta_d = 2*atan2(y,x);
-	return NormRad(theta_d);
-}
-
 
 int main ( int argc, char **argv) {
 
@@ -64,40 +58,69 @@ int main ( int argc, char **argv) {
 	ros::Subscriber sub = n.subscribe("/turtle1/pose", 1000, chatterCallback);
 	ros::Rate loop_rate(10);
 
-	float p_x, p_y;
+	bool state;
+	float p_x, p_y, p_theta;
 	ROS_INFO("Coordenada x: ");
 	std::cin >> p_x;
 	ROS_INFO("Coordenada y: ");
 	std::cin >> p_y;
+	ROS_INFO("Coordenada theta: ");
+	std::cin >> p_theta;
 
-	float k, b;
-	ROS_INFO("Parametro k_1: ");
+	ROS_INFO("P(%f,%f,%f)",dx- p_x, dy-p_y, da-p_theta);
+
+	float k=1, gamma=1;
+#if 0
+	ROS_INFO("Parametro k: ");
 	std::cin >> k;
-	ROS_INFO("Parametro k_2: ");
-	std::cin >> b;
-
+	ROS_INFO("Parametro b: ");
+	std::cin >> gamma;
+#endif
+	float erro_x, erro_y, erro_a;
+	float y_m, x_m;
 	float theta_d, alpha, beta, a;
 	float b_1, b_2;
 	while (ros::ok()) {
 
-		beta=dy/dx;
-		theta_d = Theta_d(dx, dy);
-		a=sqrt(dx*dx+dy*dy)/Sinc(theta_d/2)*Sign(dx,dy);
-		alpha=da - theta_d;
-		alpha=NormRad(alpha);
-		b_1 = cos(da)*(theta_d/beta - 1)+
-			sin(da)*((theta_d/2)*(1-1/(beta*beta))+1/beta);
+		if (erro_x*erro_x+erro_y*erro_y<1e-4) {
+			ROS_INFO("Coordenada x: ");
+			std::cin >> p_x;
+			ROS_INFO("Coordenada y: ");
+			std::cin >> p_y;
+			ROS_INFO("Coordenada theta: ");
+			std::cin >> p_theta;
+		}
 
-		b_2 = cos(da)*((2*beta)/(1+beta*beta)*dx)-sin(da)*
-			((2*beta)/(1+beta*beta)*dx);
+		erro_x=dx - p_x;
+		erro_y=dy - p_y;
+		erro_a=da - p_theta; 
 
-		geometry_msgs::Twist msg;
+		ROS_INFO("P[%f][%f][%f]",erro_x, erro_y, erro_a);
 
-		msg.linear.x=-b*b_1*a;
-		msg.angular.z=(-b_2*msg.linear.x)-(k*alpha);
+		x_m = cos(p_theta)*erro_x+sin(p_theta)*erro_y;
+		y_m =-sin(p_theta)*erro_x+cos(p_theta)*erro_y;
+
+		beta=y_m/x_m;
+
+		theta_d = Theta_d(x_m, y_m);
+
+		a=Sign(x_m,y_m)*sqrt(x_m*x_m+y_m*y_m)/Sinc(theta_d/2.0);
+
+		alpha=NormRad(erro_a - theta_d);
+
+		b_1 = cos(erro_a)*(theta_d/beta - 1)+
+			sin(erro_a)*((theta_d/2)*(1-1/(beta*beta))+1/beta);
+
+		b_2 =-sin(erro_a)*(2/((1+beta*beta)*erro_x))
+			+ cos(erro_a)*(2*beta/((1+beta*beta)*erro_x));
 
 		ROS_INFO("(b_1,b_2): [%f][%f]", b_1, b_2);
 		ROS_INFO("(alpha,beta): [%f][%f]", alpha, beta);
+
+		geometry_msgs::Twist msg;
+
+		msg.linear.x=-gamma*b_1*a/(1+abs(a));
+		msg.angular.z=-b_2*msg.linear.x-(k*alpha);
 
 		chatter_pub.publish(msg);
 

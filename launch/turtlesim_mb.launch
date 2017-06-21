@@ -1,0 +1,34 @@
+<launch>
+
+	<node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+		<rosparam file="$(find p3at_nav)/config/costmap_common_params.yaml" />
+			command="load" ns="local_costmap" />   
+		<rosparam file="$(find p3at_nav)/config/costmap_common_params.yaml"
+			command="load" ns="global_costmap" />
+		<rosparam file="$(find p3at_nav)/config/local_costmap_params.yaml"
+			command="load" />   
+		<rosparam file="$(find p3at_nav)/config/global_costmap_params.yaml"
+			command="load" />
+		<rosparam file="$(find p3at_nav)/config/dwa_local_planner_params.yaml"
+			command="load" />
+		<rosparam file="$(find p3at_nav)/config/move_base_params.yaml"
+			command="load" />
+		<rosparam file="$(find p3at_nav)/config/global_planner_params.yaml"
+			command="load" />
+	</node>
+
+	<node pkg="map_server" type="map_server" name="map_server" args="$(find
+	p3at_nav)/config/map.yaml">
+	<param name="frame_id" value="map"/>
+	</node>
+
+	<node pkg="turtlesim" type="turtlesim_node" name="turtlesim"
+	output="screen">
+	<remap from="turtle1/cmd_vel" to="cmd_vel" />
+	</node>
+
+	<node pkg="p3at_nav" type="turtle_tf_broadcaster" name="broadcaster">
+	</node>
+
+
+</launch>

@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>beginner_tutorials</name>
+  <name>p3at_nav</name>
   <version>0.0.0</version>
   <description>The beginner_tutorials package</description>
 
@@ -48,7 +48,8 @@
   <run_depend>rospy</run_depend>
   <run_depend>std_msgs</run_depend>
   <run_depend>message_runtime</run_depend>
-
+  <run_depend>tf</run_depend>
+  <run_depend>turtlesim</run_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
